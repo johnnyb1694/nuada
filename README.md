@@ -11,7 +11,7 @@ Guardian: https://content.guardianapis.com/search?show-blocks=body&api-key={KEY}
 
 The structure is roughly: {protocol}/{domain}/{path}/{resource}/{{params}}
 
-# Design considerations:
+# Design considerations
 
 This tool, ultimately, will need to:
 
@@ -19,3 +19,13 @@ This tool, ultimately, will need to:
 (b) Store this data inside a basic relational format
 
 It will need to execute the above tasks on a scheduled basis. The solution will ultimately be deployed to AWS.
+
+We will begin with a simple structure for the application:
+
+-> { nuada }
+    -> __init__.py
+    -> db.py
+    -> resources.py
+
+
+
