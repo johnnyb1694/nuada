@@ -22,10 +22,10 @@ It will need to execute the above tasks on a scheduled basis. The solution will 
 
 We will begin with a simple structure for the application:
 
--> { nuada }
+-> { dbm }
     -> __init__.py
-    -> db.py
-    -> resources.py
+    -> models.py
+    -> sources.py
 
 
 

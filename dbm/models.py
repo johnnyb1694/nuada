@@ -38,7 +38,7 @@ class Article(Base):
 
 class Source(Base):
     '''
-    Represents data on a specific news 'source' (e.g. the 'Guardian')
+    Represents data on a specific news 'source' (e.g. the 'New York Times')
     '''
     __tablename__ = 'source'
 
