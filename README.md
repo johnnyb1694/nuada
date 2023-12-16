@@ -1,31 +1,29 @@
 # Nuada
 
-A project dedicated to extracting data from freely available news outlet APIs and storing this data inside a structured format online.
+A project dedicated to extracting data from freely available news outlet APIs and mapping reporting trends.
 
-The name 'Nuada' alludes to a famous king in Celtic mythology known for his silver arm. This name symbolizes the process of shaping and molding data.
+The name 'Nuada' alludes to a famous king in Celtic mythology known for his silver arm. This name symbolizes the process of shaping and molding data into something useful.
 
 # Example calls
 
 New York Times: https://api.nytimes.com/svc/archive/v1/2022/9.json?api-key={KEY}
 Guardian: https://content.guardianapis.com/search?show-blocks=body&api-key={KEY}&page-size=50&from-date=2022-09-01
 
-The structure is roughly: {protocol}/{domain}/{path}/{resource}/{{params}}
+We will begin by simply integrating calls to the New York Times API; starting simply first is always a good approach.
 
 # Design considerations
 
-This tool, ultimately, will need to:
+At the end of this process, a user should be able to select a given 'month' of interest and be presented with the most 'popular' topics of that month.
 
-(a) Download data from each aforementioned endpoint; 
-(b) Store this data inside a basic relational format
+This means that, on a monthly basis:
 
-It will need to execute the above tasks on a scheduled basis. The solution will ultimately be deployed to AWS.
+-> A call must be issued to the New York Times API to download the required data
+-> An algorithm must ingest the required data (from the previous step) and assemble the highest ranking topics from each month
+-> The results should, subsequently, be stored inside a relational database
 
-We will begin with a simple structure for the application:
+# Setup
 
--> { dbm }
-    -> __init__.py
-    -> models.py
-    -> sources.py
+To configure the setup for this pipeline, simply run `./setup.sh nuada-archives`
 
 
 
