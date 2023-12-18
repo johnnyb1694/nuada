@@ -1,12 +1,14 @@
 import requests
-import logging
 import os
 import boto3
+import logging
 
 from botocore.exceptions import ClientError
 from datetime import datetime
 from dotenv import load_dotenv
+
 load_dotenv()
+log = logging.getLogger(__name__)
 
 def request_nyt_archive_search(year: int, month: int, key: str) -> str:
     """
@@ -29,7 +31,7 @@ def request_nyt_archive_search(year: int, month: int, key: str) -> str:
 
 def upload_file(file_name: str, bucket: str, object_name=None):
     """
-    Upload a file to an S3 bucket
+    Upload a file to an S3 bucket.
 
     :param file_name: File to upload
     :param bucket: Bucket to upload to
@@ -51,21 +53,22 @@ def upload_file(file_name: str, bucket: str, object_name=None):
 
 def lambda_handler(event, context):
     """
-    Handler for AWS lambda integration
+    Handler for AWS lambda integration.
     """
-    # Parameters (General)
+    log.info('Configuring input parameters')
     s3_bucket = 'nuada'
     time = datetime.now()
-    
-    # Parameters (NYT)
     nyt_latest_year = time.year
     nyt_latest_month = time.month - 1
     nyt_key = os.environ.get('SOURCE_KEY_NYT')
     nyt_file_name = f'{nyt_latest_year}_{nyt_latest_month}_nyt_archive_search.json'
 
-    # Execute upload process
+    log.info(f'Extracting latest media archive (as at: 01/{nyt_latest_month}/{nyt_latest_year}) from the New York Times API')
     articles = request_nyt_archive_search(year=nyt_latest_year, month=nyt_latest_month, key=nyt_key)
+
+    log.info(f'Uploading latest archive (filename: {nyt_file_name}) to S3 bucket: {s3_bucket}')
     response = upload_file(file_name=nyt_file_name, bucket=s3_bucket, object_name=articles)
+    
     return response
 
 if __name__ == '__main__':
