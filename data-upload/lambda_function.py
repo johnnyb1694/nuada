@@ -37,7 +37,7 @@ def request_nyt_archive_search(year: int, month: int, key: str) -> str:
     return res.json()
 
 @contextmanager
-def stage(file_name: str, data: dict, base_path: str = './staging'):
+def stage(file_name: str, data: dict, base_path: str = '/tmp'):
     """
     Stages data in a JSON format (e.g. articles retrieved in a dictionary format). Operates in a context-driven fashion.
 
@@ -59,7 +59,7 @@ def stage(file_name: str, data: dict, base_path: str = './staging'):
             os.remove(staging_path)
     return True
 
-def upload_file(file_name: str, bucket: str, object_name: str | None = None, base_path: str = './staging'):
+def upload_file(file_name: str, bucket: str, object_name: str | None = None, base_path: str = '/tmp'):
     """
     Upload a file to an S3 bucket.
 
@@ -106,5 +106,4 @@ def lambda_handler(event, context):
     return True
 
 if __name__ == '__main__':
-    
-    lambda_handler(None, None)
+    pass
