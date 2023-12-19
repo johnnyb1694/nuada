@@ -7,7 +7,6 @@ import logging
 from contextlib import contextmanager
 from botocore.exceptions import ClientError
 from datetime import datetime
-from time import sleep
 from dotenv import load_dotenv
 load_dotenv()
 

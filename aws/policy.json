@@ -16,7 +16,7 @@
                 "s3:GetObject",
                 "s3:PutObject"
             ],
-            "Resource": "arn:aws:s3:::'$1'/*"
+            "Resource": "arn:aws:s3:::nuada-archives/*"
         }
     ]
 }
