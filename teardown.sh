@@ -7,4 +7,4 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 echo "** Stage 1: Removing Lambda function **"
-aws lambda delete-function --function-name nuada-data-upload --output text >> tear_down.log
+aws lambda delete-function --function-name nuada-data-upload --output text > logs/teardown.log
