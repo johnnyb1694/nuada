@@ -10,11 +10,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s : %(message)s', 
-                    datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.INFO)   
-
-log = logging.getLogger(__name__)
+log = logging.getLogger()
+log.setLevel('INFO')
 
 def request_nyt_archive_search(year: int, month: int, key: str) -> str:
     """

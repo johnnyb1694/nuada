@@ -24,13 +24,13 @@ echo "** Stage 3: Creating S3 bucket with alias "$1" **"
 aws s3api create-bucket --bucket $1 --create-bucket-configuration LocationConstraint=us-east-2 --output text > logs/setup.log
 
 echo "** Stage 4: Creating relevant policy (permissions) for AWS Lambda **"
-aws iam create-policy --policy-name lambda-s3-policy --policy-document file://aws/policy.json --output text >> logs/setup.log
+aws iam create-policy --policy-name AWSLambdaS3Access --policy-document file://aws/policy.json --output text >> logs/setup.log
 
 echo "** Stage 5: Creating relevant role for AWS Lambda **"
-aws iam create-role --role-name lambda-s3-role --assume-role-policy-document file://aws/trust-policy.json --output text >> logs/setup.log
+aws iam create-role --role-name AWSLambdaS3Role --assume-role-policy-document file://aws/trust-policy.json --output text >> logs/setup.log
 
 echo "** Stage 6: Attaching policy (permissions) to newly created role **"
-aws iam attach-role-policy --role-name lambda-s3-role --policy-arn arn:aws:iam:$AWS_REGION:$AWS_ID:policy/lambda-s3-policy --output text >> logs/setup.log
+aws iam attach-role-policy --role-name AWSLambdaS3Role --policy-arn arn:aws:iam::$AWS_ID:policy/AWSLambdaS3Access --output text >> logs/setup.log
 
 echo "** Stage 7: Sleeping 10 seconds to allow policy to attach to role **"
 sleep 10s
@@ -38,7 +38,7 @@ sleep 10s
 echo "** Stage 8: Creating Lambda function **"
 aws lambda create-function --function-name nuada-data-upload \
     --runtime python3.10 \
-    --role arn:aws:iam::$AWS_ID:role/lambda-s3-role \
+    --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
     --zip-file fileb://staging/lambda-data-upload.zip \
     --handler lambda_function.lambda_handler \
     --timeout 60 \
@@ -51,23 +51,29 @@ aws lambda update-function-configuration --function-name nuada-data-upload \
     --environment Variables="{SOURCE_KEY_NYT=$SOURCE_KEY_NYT}" \
     --output text >> logs/setup.log
 
-# echo "** Stage 10: Creating event rule to schedule execution of Lambda expression on a regular basis **"
-# aws events put-rule --name nuada-data-upload-schedule \
-#   --schedule-expression 'rate(30 minutes)' \
-#   --output text >> logs/setup.log
+echo "** Stage 10: Creating event rule to schedule execution of Lambda expression on a regular basis **"
+aws events put-rule --name nuada-data-upload-schedule \
+    --schedule-expression 'rate(7 days)' \
+    --output text >> logs/setup.log
 
-# echo "** Stage 11: Attaching Lambda function to event **"
-# aws lambda add-permission --function-name nuada-data-upload \
-#    --statement-id nuada-schedule \
-#    --action lambda:InvokeFunction \
-#    --principal events.amazonws.com \
-#    --source-arn arn:aws:events:$AWS_REGION:$AWS_ID:rule/nuada-data-upload-schedule \
-#    --output text >> logs/setup.log
+echo "** Stage 11: Attaching Lambda function to event **"
+aws lambda add-permission --function-name nuada-data-upload \
+    --statement-id nuada-schedule \
+    --action lambda:InvokeFunction \
+    --principal events.amazonaws.com \
+    --source-arn arn:aws:events:$AWS_REGION:$AWS_ID:rule/nuada-data-upload-schedule \
+    --output text >> logs/setup.log
 
-#echo "** Stage 12: Assigning function target to rule **"
-# aws events put-targets --rule nuada-data-upload-schedule \
-#    --targets file://aws/targets.json \
-#    --output text >> logs/setup.log
+echo "** Stage 12: Assigning targeted Lambda function (i.e. data upload) to rule **"
+echo '[
+    {
+      "Id": "1",
+      "Arn": "arn:aws:lambda:'$AWS_REGION':'$AWS_ID':function:nuada-data-upload"
+    }
+]' > ./aws/targets.json
+aws events put-targets --rule nuada-data-upload-schedule \
+    --targets file://aws/targets.json \
+    --output text >> logs/setup.log
 
     
 
