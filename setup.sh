@@ -6,18 +6,20 @@ if [[ $# -eq 0 ]] ; then
     exit 1
 fi
 
-echo "** Step 0: Preliminary stage to configure virtual environment for deployment **"
+echo "** Step 0: Preliminary stage to configure virtual environment for deployment(s) **"
 cd ./venv/lib/python3.10/site-packages
 zip -rq ../../../../staging/lambda-data-upload.zip .
+zip -rq ../../../../staging/lambda-data-transfer.zip .
 cd ../../../..
 
 echo "** Step 1: Retrieving AWS credentials **"
 AWS_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION=$(aws configure get region)
 
-echo "** Step 2: Packaging 'data-upload' functionality **"
-cd ./nuada
-zip ../staging/lambda-data-upload.zip staging lambda_upload.py
+echo "** Step 2: Packaging Lambda function(s) **"
+cd ./src
+zip ../staging/lambda-data-upload.zip nuada lambda_upload.py
+zip ../staging/lambda-data-transfer.zip nuada lambda_transfer.py
 cd ..
 
 echo "** Step 3: Creating S3 bucket with alias "$1" **"
@@ -35,7 +37,7 @@ aws iam attach-role-policy --role-name AWSLambdaS3Role --policy-arn arn:aws:iam:
 echo "** Step 7: Sleeping 10 seconds to allow policy to attach to role **"
 sleep 10s
 
-echo "** Step 8: Creating Lambda function **"
+echo "** Step 8a: Creating Lambda function (for 'data upload' purposes) **"
 aws lambda create-function --function-name nuada-data-upload \
     --runtime python3.10 \
     --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
@@ -44,7 +46,16 @@ aws lambda create-function --function-name nuada-data-upload \
     --timeout 60 \
     --output text >> logs/setup.log
 
-rm -r staging/lambda-data-upload.zip
+echo "** Step 8b: Creating Lambda function (for 'data transfer' purposes) **"
+aws lambda create-function --function-name nuada-data-transfer \
+    --runtime python3.10 \
+    --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
+    --zip-file fileb://staging/lambda-data-transfer.zip \
+    --handler lambda_transfer.lambda_handler \
+    --timeout 60 \
+    --output text >> logs/setup.log
+
+rm -r staging/*.zip
 
 echo "** Step 9: Adding API key(s) as Lambda environment variables **"
 aws lambda update-function-configuration --function-name nuada-data-upload \
@@ -74,8 +85,6 @@ echo '[
 aws events put-targets --rule nuada-data-upload-schedule \
     --targets file://aws/targets.json \
     --output text >> logs/setup.log
-
-# echo "**** Stage II: Configuring 'data-transfer' resources in AWS ****"
 
     
 

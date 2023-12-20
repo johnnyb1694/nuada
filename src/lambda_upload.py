@@ -28,17 +28,17 @@ def request_nyt_archive_search(year: int, month: int, key: str) -> str:
         res = requests.get(url)
         res.raise_for_status()
     except requests.exceptions.RequestException as e:
-        logging.error(e)
+        log.error(e)
         return False
     return res.json()
 
 @contextmanager
-def stage(file_name: str, data: dict, base_path: str = '/tmp'):
+def staging_data(file_name: str, data: dict, base_path: str = '/tmp'):
     """
-    Stages data in a JSON format (e.g. articles retrieved in a dictionary format). Operates in a context-driven fashion.
+    Stages response data in a JSON format (e.g. articles retrieved in a dictionary format) on the local `/tmp` drive. Operates in a context-driven fashion.
 
     :param file_name: Desired file name (including base path, if necessary)
-    :param data: dataset as a dictionary
+    :param data: Dataset
     """
     staging_path = os.path.join(base_path, file_name)
     try:
@@ -96,7 +96,7 @@ def lambda_handler(event, context):
     articles = request_nyt_archive_search(year=nyt_latest_year, month=nyt_latest_month, key=nyt_key)
 
     log.info(f'Uploading latest archive (filename: {nyt_file_name}) to S3 bucket: "{s3_bucket}"')
-    with stage(nyt_file_name, articles):
+    with staging_data(nyt_file_name, articles):
         upload_file(file_name=nyt_file_name, bucket=s3_bucket)
     
     return True
