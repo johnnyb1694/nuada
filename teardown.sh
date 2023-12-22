@@ -10,6 +10,7 @@ AWS_ID=$(aws sts get-caller-identity --query Account --output text)
 
 echo "** Stage 1: Removing Lambda function & associated scheduling **"
 aws lambda delete-function --function-name nuada-data-upload --output text > logs/teardown.log
+aws lambda delete-function --function-name nuada-data-transfer --output text >> logs.teardown.log
 aws events remove-targets --rule nuada-data-upload-schedule --ids "1" --output text >>  logs/teardown.log
 aws events delete-rule --name nuada-data-upload-schedule --output text >> logs/teardown.log
 
@@ -24,4 +25,5 @@ aws s3api delete-bucket --bucket $1 --output text >> logs/teardown.log
 
 echo "** Stage 4: Removing local configuration / logging files **"
 rm ./aws/targets.json
+rm ./aws/notification.json
 rm ./logs/setup.log

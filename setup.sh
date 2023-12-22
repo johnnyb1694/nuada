@@ -6,6 +6,11 @@ if [[ $# -eq 0 ]] ; then
     exit 1
 fi
 
+trap remove_staging_files EXIT
+remove_staging_files() {
+    rm -r staging/*.zip > /dev/null 2>&1
+}
+
 echo "** Step 0: Preliminary stage to configure virtual environment for deployment(s) **"
 cd ./venv/lib/python3.10/site-packages
 zip -rq ../../../../staging/lambda-data-upload.zip .
@@ -37,7 +42,7 @@ aws iam attach-role-policy --role-name AWSLambdaS3Role --policy-arn arn:aws:iam:
 echo "** Step 7: Sleeping 10 seconds to allow policy to attach to role **"
 sleep 10s
 
-echo "** Step 8a: Creating Lambda function (for 'data upload' purposes) **"
+echo "** Step 8: Creating Lambda function (for 'data upload' purposes) **"
 aws lambda create-function --function-name nuada-data-upload \
     --runtime python3.10 \
     --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
@@ -46,25 +51,14 @@ aws lambda create-function --function-name nuada-data-upload \
     --timeout 60 \
     --output text >> logs/setup.log
 
-echo "** Step 8b: Creating Lambda function (for 'data transfer' purposes) **"
-aws lambda create-function --function-name nuada-data-transfer \
-    --runtime python3.10 \
-    --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
-    --zip-file fileb://staging/lambda-data-transfer.zip \
-    --handler lambda_transfer.lambda_handler \
-    --timeout 60 \
-    --output text >> logs/setup.log
-
-rm -r staging/*.zip
-
 echo "** Step 9: Adding API key(s) as Lambda environment variables **"
 aws lambda update-function-configuration --function-name nuada-data-upload \
     --environment Variables="{SOURCE_KEY_NYT=$SOURCE_KEY_NYT}" \
     --output text >> logs/setup.log
 
-echo "** Step 10: Creating event rule to schedule execution of Lambda expression on a regular basis **"
+echo "** Step 10: Creating event rule to schedule execution of Lambda expression on a regular basis (9am on the first Monday of each month) **"
 aws events put-rule --name nuada-data-upload-schedule \
-    --schedule-expression 'rate(7 days)' \
+    --schedule-expression 'cron(0 9 ? * 2#1 *)' \ 
     --output text >> logs/setup.log
 
 echo "** Step 11: Attaching Lambda function to event **"
@@ -77,14 +71,47 @@ aws lambda add-permission --function-name nuada-data-upload \
 
 echo "** Step 12: Assigning targeted Lambda function (i.e. data upload) to rule **"
 echo '[
-    {
-      "Id": "1",
-      "Arn": "arn:aws:lambda:'$AWS_REGION':'$AWS_ID':function:nuada-data-upload"
-    }
-]' > ./aws/targets.json
+        {
+            "Id": "1",
+            "Arn": "arn:aws:lambda:'$AWS_REGION':'$AWS_ID':function:nuada-data-upload"
+        }
+      ]' > ./aws/targets.json
 aws events put-targets --rule nuada-data-upload-schedule \
     --targets file://aws/targets.json \
     --output text >> logs/setup.log
+
+echo "** Step 13: Creating Lambda function (for 'data transfer' purposes) **"
+aws lambda create-function --function-name nuada-data-transfer \
+    --runtime python3.10 \
+    --role arn:aws:iam::$AWS_ID:role/AWSLambdaS3Role \
+    --zip-file fileb://staging/lambda-data-transfer.zip \
+    --handler lambda_transfer.lambda_handler \
+    --timeout 60 \
+    --output text >> logs/setup.log
+
+echo "** Step 14: Adding permissions for S3 to invoke data transfer function **"
+aws lambda add-permission --function-name nuada-data-transfer \
+    --principal s3.amazonaws.com \
+    --statement-id nuada-trigger \
+    --action lambda:InvokeFunction \
+    --source-arn arn:aws:s3:::$1 \
+    --source-account $AWS_ID \
+    --output text >> logs.setup.log
+
+echo "** Step 15: Setting up S3 trigger for the invocation of the data transfer function **"
+echo '{
+        "LambdaFunctionConfigurations": [
+            {
+                "Id": "DataTransferEventConfiguration",
+                "LambdaFunctionArn": "arn:aws:lambda:'$AWS_REGION':'$AWS_ID':function:nuada-data-transfer",
+                "Events": [ "s3:ObjectCreated:Put" ]
+            }
+        ]
+      }' > ./aws/notification.json
+aws s3api put-bucket-notification-configuration --bucket $1 \
+    --notification-configuration file://aws/notification.json \
+    --output text >> logs/setup.log
+
 
     
 

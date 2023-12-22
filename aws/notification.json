@@ -1,0 +1,9 @@
+{
+        "LambdaFunctionConfigurations": [
+            {
+                "Id": "DataTransferEventConfiguration",
+                "LambdaFunctionArn": "arn:aws:lambda:us-east-2:966440114553:function:nuada-data-transfer",
+                "Events": [ "s3:ObjectCreated:Put" ]
+            }
+        ]
+      }

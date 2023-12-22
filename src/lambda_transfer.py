@@ -1,6 +1,7 @@
 import logging
 import urllib.parse
 import boto3
+import json
 
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -45,6 +46,20 @@ def get_s3_metadata(event):
     s3_metadata = {'bucket': bucket, 'key': key}
     return s3_metadata
 
+def extract_article_data(response) -> dict:
+    """
+    Ingests a response from `s3_client.get_object()` and deserialises this response into a Python dictionary object.
+
+    :param response: Raw response from call to `s3_client.get_object()` (see `lambda_handler()` presented below)
+    """
+    body = response['Body'].read().decode('utf-8')
+    decoded = json.loads(body)
+    article_data = decoded['response']['docs']
+    return article_data
+
+def filter_article_data(article_data: dict) -> dict:
+    pass
+
 def lambda_handler(event, context):
     """
     Handler for AWS lambda integration.
@@ -55,11 +70,17 @@ def lambda_handler(event, context):
     s3_metadata = get_s3_metadata(event)
     s3_client = boto3.client('s3')
     try:
+        log.info(f'Retrieving latest dataset (key: {s3_metadata["key"]}) uploaded to: {s3_metadata["bucket"]}')
         response = s3_client.get_object(Bucket=s3_metadata['bucket'], Key=s3_metadata['key'])
+        # Logic to upload code to an RDS instance
     except ClientError as e:
         log.error(e)
         raise e
-    return response
+    return True
 
 if __name__ == '__main__':
-    pass
+    
+    s3_client = boto3.client('s3')
+    response = s3_client.get_object(Bucket='nuada-archives', Key='2023_11_nyt_archive_search.json')
+    article_data = extract_article_data(response)
+    print(article_data[0])
