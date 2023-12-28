@@ -55,14 +55,16 @@ def lambda_handler(event, context):
     """
     s3_metadata = get_s3_metadata(event)
     s3_client = boto3.client('s3')
+    status = False
     try:
         log.info(f'Retrieving latest dataset (key: {s3_metadata["key"]}) uploaded to: {s3_metadata["bucket"]}')
-        response_raw = s3_client.get_object(Bucket=s3_metadata['bucket'], Key=s3_metadata['key'])
-        response_processed = preprocess(response_raw)
+        response = s3_client.get_object(Bucket=s3_metadata['bucket'], Key=s3_metadata['key'])
+        transformed = preprocess(response)
+        status = ingest(transformed)
     except ClientError as e:
         log.error(e)
         raise e
-    return True
+    return status
 
 if __name__ == '__main__':
     pass
