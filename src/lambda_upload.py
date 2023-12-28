@@ -96,10 +96,11 @@ def lambda_handler(event, context):
     articles = request_nyt_archive_search(year=nyt_latest_year, month=nyt_latest_month, key=nyt_key)
 
     log.info(f'Uploading latest archive (filename: {nyt_file_name}) to S3 bucket: "{s3_bucket}"')
+    response = False
     with staging_data(nyt_file_name, articles):
-        upload_file(file_name=nyt_file_name, bucket=s3_bucket)
+        response = upload_file(file_name=nyt_file_name, bucket=s3_bucket)
     
-    return True
+    return response
 
 if __name__ == '__main__':
     pass

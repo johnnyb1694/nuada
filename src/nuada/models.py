@@ -29,7 +29,7 @@ class Term(Base):
     term_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     term: Mapped[str] = mapped_column(Text, nullable=False)
     frequency: Mapped[str] = mapped_column(Text, nullable=False)
-    week: Mapped[int] = mapped_column(Integer, nullable=False)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     source_id: Mapped[int] = mapped_column(ForeignKey('source.source_id'))
     control_id: Mapped[int] = mapped_column(ForeignKey('control.control_id'))

@@ -160,5 +160,5 @@ cython_debug/
 #.idea/
 
 # temporary files for development purposes
-*/tmp/*
+/tmp/*
 /staging/*
