@@ -44,7 +44,7 @@ class Source(Base):
     __tablename__ = 'source'
 
     source_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    alias: Mapped[str] = mapped_column(String(30), nullable=False)
+    source_alias: Mapped[str] = mapped_column(String(30), nullable=False)
 
     __table_args__ = (UniqueConstraint('source_alias', name='_uc_source_alias'),)
 
