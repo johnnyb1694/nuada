@@ -22,20 +22,22 @@ class Control(Base):
 
 class Term(Base):
     '''
-    Represents the terms (and their associated frequencies) sourced from the relevant outlet in `Source`
+    Represents the terms (and their as sociated frequencies) sourced from the relevant outlet in `Source`
     '''
-    __tablename__ = 'article'
+    __tablename__ = 'term'
 
     term_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     term: Mapped[str] = mapped_column(Text, nullable=False)
-    frequency: Mapped[str] = mapped_column(Text, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     source_id: Mapped[int] = mapped_column(ForeignKey('source.source_id'))
     control_id: Mapped[int] = mapped_column(ForeignKey('control.control_id'))
+    frequency: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint('term', 'year', 'month', name='_uc_term_year_month'),)
 
     def __repr__(self) -> str:
-        return f'Article(article_id={self.article_id}, publication_date={self.publication_date}, headline={self.headline}, abstract={self.abstract})'
+        return f'Term(term_id={self.term_id}, year={self.year}, month={self.month}, frequency={self.frequency})'
 
 class Source(Base):
     '''

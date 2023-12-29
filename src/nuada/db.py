@@ -1,39 +1,121 @@
-from sqlalchemy import create_engine, URL
-from sqlalchemy.orm import sessionmaker
-from models import Base
+import pandas as pd
+import logging
 
-def _init_engine(db_dialect: str = 'sqlite', 
-                 db_api: str = 'pysqlite', 
-                 db_user: str = '',
-                 db_pwd: str = '',
-                 db_host: str = '',
-                 db_port: str = '', 
-                 db_name: str = ':memory:',
-                 echo: bool = True):
+from dataclasses import dataclass
+from sqlalchemy import create_engine, URL, select, update
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker, Session
+from models import Base, Control, Term, Source
+
+log = logging.getLogger()
+log.setLevel('INFO')
+
+@dataclass
+class DBC:
+    db_dialect: str = 'sqlite'
+    db_api: str = 'pysqlite'
+    db_user: str | None = ''
+    db_pwd: str | None = ''
+    db_host: str | None = ''
+    db_port: str | None = ''
+    db_name: str = ':memory:'
+    echo: bool = False
+
+def _init_db_session(db_config: DBC = DBC()) -> Session:
     """
     Initialise a database 'session' for operating on the remote database. This abstraction essentially encapsulates a pool of database connections.
 
     This function will initialise the schema for this database if it has not been created in the target database already.
     """
     # Configure database parameters
-    db_config = {
-        'drivername': f'{db_dialect}+{db_api}',
-        'username': f'{db_user}',
-        'password': f'{db_pwd}',
-        'host': f'{db_host}',
-        'database': f'{db_name}'
+    engine_config = {
+        'drivername': f'{db_config.db_dialect}+{db_config.db_api}',
+        'username': f'{db_config.db_user}',
+        'password': f'{db_config.db_pwd}',
+        'host': f'{db_config.db_host}',
+        'database': f'{db_config.db_name}'
     }
 
-    if db_port:
-        db_config['port'] = f'{db_port}'
-
     # Initialise connection pool ('engine')
-    engine = create_engine(url=URL.create(**db_config), echo=echo)
+    engine = create_engine(url=URL.create(**engine_config), echo=db_config.echo)
     Base.metadata.create_all(engine)
     
     # Establish session factory (which encapsulates a connection pool to the specified remote database URL)
     Session = sessionmaker(engine)
     return Session
 
+def _ingest_term(db_session, term_data: dict, source_id: int, control_id: int):
+    """
+    Ingest a single term record (`term_data`) with *at least* keys: `term`, `year`, `month` and `frequency`
+    """
+    try:
+        stmt = select(Term).where(Term.term == term_data['term'] and Term.year == term_data['year'] and Term.month == term_data['month'])
+        res = db_session.execute(stmt).first()
+        if not res:
+            term = Term(term=term_data['term'],
+                        year=term_data['year'],
+                        month=term_data['month'],
+                        source_id=source_id,
+                        control_id=control_id,
+                        frequency=term_data['frequency'])
+            db_session.add(term)
+            db_session.flush()
+    except SQLAlchemyError as e:
+        log.error(e)
+        db_session.rollback()
+
+def ingest(terms_df: pd.DataFrame, db_config: DBC = DBC(), commentary: str = 'Batch', source_alias: str = 'New York Times'):
+    """
+    Ingests a `pd.DataFrame` object with at least columns: `term`, `year`, `month` and `frequency`.
+
+    This object is inserted into the remote database instance specified by `db_config`.
+
+    :param terms_df: Generated output of `transformer.preprocess()` with columns `term`, `year`, `month` and `frequency`
+    :param db_config: Configuration for the remote database instance where results will be stored
+    :param commentary: Brief note on the ingestion performed; defaults to `'Batch'`
+    :param source_alias: Describes the source of ingestion; at present, this is simply set to the `'New York Times'` by default as it is the only outlet we process
+    """
+    Session = _init_db_session(db_config=db_config)
+    with Session() as db_session:
+        try:
+            # Set up a 'control' record for this batch run
+            control = Control(commentary=commentary)
+            db_session.add(control)
+            db_session.flush()
+            control_id = control.control_id
+            # Set up a 'source' record for this batch run
+            stmt = select(Source).where(Source.source_alias == source_alias)
+            res = db_session.execute(stmt).first()
+            if not res:
+                source = Source(source_alias=source_alias)
+                db_session.add(source)
+                db_session.flush()
+                source_id = source.source_id
+            else:
+                source_id = res[0].source_id
+            # Ingest headline terms into database
+            terms = terms_df.to_dict(orient='records')
+            for term_data in terms:
+                _ingest_term(db_session, term_data, source_id, control_id)
+            resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
+            db_session.execute(resolution)
+        except SQLAlchemyError as e:
+            log.error(e)
+            db_session.rollback()
+            resolution = update(Control).where(Control.control_id == control_id).values(status='Fatal')
+            db_session.execute(resolution)
+        finally:
+            db_session.flush()
+            db_session.commit()
+
 if __name__ == '__main__':
-    pass
+    terms_df = pd.DataFrame(
+        {
+            'term': ['trump', 'biden'],
+            'year': [2023, 2023],
+            'month': [11, 11],
+            'frequency': [100, 200]
+        }
+    )
+    db_config = DBC(db_name = 'tmp/sqlite.db', echo=True)
+    ingest(terms_df, db_config)

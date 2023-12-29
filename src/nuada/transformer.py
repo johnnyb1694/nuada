@@ -42,8 +42,8 @@ def _extract_headlines(decoded: dict) -> pd.DataFrame:
     headlines = [{'publication_date': pd.to_datetime(article['pub_date']),
                   'headline': article['headline']['main']} for article in articles]
     headlines_df = pd.DataFrame(headlines)
-    headlines_df['publication_year'] = headlines_df['publication_date'].dt.year
-    headlines_df['publication_month'] = headlines_df['publication_date'].dt.month
+    headlines_df['year'] = headlines_df['publication_date'].dt.year
+    headlines_df['month'] = headlines_df['publication_date'].dt.month
     return headlines_df
 
 def _tokenize_headlines(headlines_df: pd.DataFrame):
@@ -52,23 +52,23 @@ def _tokenize_headlines(headlines_df: pd.DataFrame):
 
     :param headlines_df: `pd.DataFrame` object with *at least* column `headline`
     """
-    headlines_df['headline_term'] = headlines_df['headline'].apply(word_tokenize)
-    headlines_df = headlines_df.explode('headline_term')
-    headlines_df['headline_term'] = headlines_df['headline_term'].str.lower()
+    headlines_df['term'] = headlines_df['headline'].apply(word_tokenize)
+    terms_df = headlines_df.explode('term')
+    terms_df['term'] = terms_df['term'].str.lower()
 
     stop_words = set(stopwords.words('english')) # NB: set-based usage improves lookup efficiency over list-based usage
-    headlines_df = headlines_df[~headlines_df['headline_term'].isin(stop_words)]
-    headlines_df = headlines_df[headlines_df['headline_term'].apply(lambda xx: xx.isalpha())]
+    terms_df = terms_df[~terms_df['term'].isin(stop_words)]
+    terms_df = terms_df[terms_df['term'].apply(lambda xx: xx.isalpha())]
 
-    return headlines_df
+    return terms_df
 
-def _aggregate_headlines(headlines_df: pd.DataFrame, grain: list[str] = ['publication_year', 'publication_month', 'headline_term']) -> pd.DataFrame:
+def _aggregate_terms(terms_df: pd.DataFrame, grain: list[str] = ['term', 'year', 'month']) -> pd.DataFrame:
     """
     Aggregate headline terms by the list of strings specified in `by`
 
-    :param headlines_df: `pd.DataFrame` object with *at least* columns `headline_term`, `publication_year` and `publication_month`
+    :param terms_df: `pd.DataFrame` object with *at least* columns `term`, `year` and `month`
     """
-    aggregation = headlines_df.groupby(by=grain).size().reset_index(name='count')
+    aggregation = terms_df.groupby(by=grain).size().reset_index(name='frequency')
     return aggregation
 
 def preprocess(response: dict) -> pd.DataFrame:
@@ -80,10 +80,11 @@ def preprocess(response: dict) -> pd.DataFrame:
     """
     _download_nltk_data()
     decoded = _deserialise(response)
-    headlines_df = _extract_headlines(decoded)
-    tokenized = _tokenize_headlines(headlines_df)
-    aggregated = _aggregate_headlines(tokenized)
-    return aggregated
+    terms_df = (_extract_headlines(decoded)
+                    .pipe(_tokenize_headlines)
+                    .pipe(_aggregate_terms))
+
+    return terms_df
 
 if __name__ == '__main__':
 
