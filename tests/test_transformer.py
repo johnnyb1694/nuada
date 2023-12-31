@@ -1,17 +1,28 @@
 import pandas as pd
 
 from pandas.testing import assert_frame_equal
-from nuada.transformer import _extract_headlines, _tokenize_headlines, _aggregate_terms
+from nuada.transformer import _deserialise, preprocess
 
-def test_headline_extraction(sample_nyt_json_decoded):
+def test_deserialise(sample_nyt_response):
     """
-    Testing that the correct key-value pairs are extracted from the decoded JSON response
+    Testing that deserialisation of AWS response is performed as expected
     """
+    actual = _deserialise(sample_nyt_response)
+    assert isinstance(actual, dict)
+    assert 'response' in actual
+    assert 'docs' in actual['response']
+
+def test_preprocess(sample_nyt_response):
+    """
+    Testing that the AWS response can be successfully processed and output a term frequency dataframe
+    """
+    actual = preprocess(sample_nyt_response)
     expected = pd.DataFrame({
-        'publication_date': [pd.to_datetime('2023-11-01T00:09:56+0000')],
-        'headline': ['Fruit Flies Are Invading Los Angeles. The Solution? More Fruit Flies.'],
-        'year': [2023],
-        'month': [11]
+        'term': ['headline', 'test'],
+        'year': [2022, 2022],
+        'month': [9, 9],
+        'frequency': [1, 1]
     })
-    actual = _extract_headlines(sample_nyt_json_decoded)
-    assert_frame_equal(expected, actual, check_dtype=False)
+    assert_frame_equal(actual, expected, check_dtype=False)
+
+
