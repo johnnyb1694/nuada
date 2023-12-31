@@ -12,6 +12,9 @@ log.setLevel('INFO')
 
 @dataclass
 class DBC:
+    """
+    'DBC' stands for 'Database Configuration': this dataclass can be used to configure the parameters for a remote SQL database connection
+    """
     db_dialect: str = 'sqlite'
     db_api: str = 'pysqlite'
     db_user: str | None = ''
@@ -21,7 +24,7 @@ class DBC:
     db_name: str = ':memory:'
     echo: bool = False
 
-def _init_db_session(db_config: DBC = DBC()) -> Session:
+def init_db(db_config: DBC = DBC()) -> Session:
     """
     Initialise a database 'session' for operating on the remote database. This abstraction essentially encapsulates a pool of database connections.
 
@@ -64,51 +67,50 @@ def _ingest_term(db_session, term_data: dict, source_id: int, control_id: int):
         log.error(e)
         db_session.rollback()
 
-def ingest(terms_df: pd.DataFrame, db_config: DBC = DBC(), commentary: str = 'Batch', source_alias: str = 'New York Times'):
+def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch', source_alias: str = 'New York Times'):
     """
     Ingests a `pd.DataFrame` object with at least columns: `term`, `year`, `month` and `frequency`.
 
     This object is inserted into the remote database instance specified by `db_config`.
 
+    :param db_session: Configuration for the remote database instance where results will be stored
     :param terms_df: Generated output of `transformer.preprocess()` with columns `term`, `year`, `month` and `frequency`
-    :param db_config: Configuration for the remote database instance where results will be stored
     :param commentary: Brief note on the ingestion performed; defaults to `'Batch'`
     :param source_alias: Describes the source of ingestion; at present, this is simply set to the `'New York Times'` by default as it is the only outlet we process
     """
-    Session = _init_db_session(db_config=db_config)
-    with Session() as db_session:
-        try:
-            # Set up a 'control' record for this batch run
-            control = Control(commentary=commentary)
-            db_session.add(control)
+    try:
+        # Set up a 'control' record for this batch run
+        control = Control(commentary=commentary)
+        db_session.add(control)
+        db_session.flush()
+        control_id = control.control_id
+        # Set up a 'source' record for this batch run
+        stmt = select(Source).where(Source.source_alias == source_alias)
+        res = db_session.execute(stmt).first()
+        if not res:
+            source = Source(source_alias=source_alias)
+            db_session.add(source)
             db_session.flush()
-            control_id = control.control_id
-            # Set up a 'source' record for this batch run
-            stmt = select(Source).where(Source.source_alias == source_alias)
-            res = db_session.execute(stmt).first()
-            if not res:
-                source = Source(source_alias=source_alias)
-                db_session.add(source)
-                db_session.flush()
-                source_id = source.source_id
-            else:
-                source_id = res[0].source_id
-            # Ingest headline terms into database
-            terms = terms_df.to_dict(orient='records')
-            for term_data in terms:
-                _ingest_term(db_session, term_data, source_id, control_id)
-            resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
-            db_session.execute(resolution)
-        except SQLAlchemyError as e:
-            log.error(e)
-            db_session.rollback()
-            resolution = update(Control).where(Control.control_id == control_id).values(status='Fatal')
-            db_session.execute(resolution)
-        finally:
-            db_session.flush()
-            db_session.commit()
+            source_id = source.source_id
+        else:
+            source_id = res[0].source_id
+        # Ingest headline terms into database
+        terms = terms_df.to_dict(orient='records')
+        for term_data in terms:
+            _ingest_term(db_session, term_data, source_id, control_id)
+        resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
+        db_session.execute(resolution)
+    except SQLAlchemyError as e:
+        log.error(e)
+        db_session.rollback()
+        resolution = update(Control).where(Control.control_id == control_id).values(status='Fatal')
+        db_session.execute(resolution)
+    finally:
+        db_session.flush()
+        db_session.commit()
 
 if __name__ == '__main__':
+    pass
     terms_df = pd.DataFrame(
         {
             'term': ['trump', 'biden'],

@@ -87,11 +87,4 @@ def preprocess(response: dict) -> pd.DataFrame:
     return terms_df
 
 if __name__ == '__main__':
-
-    import boto3
-
-    s3_client = boto3.client('s3')
-    response = s3_client.get_object(Bucket='nuada-archives', Key='2023_11_nyt_archive_search.json')
-
-    res = preprocess(response)
-    print(res)
+    pass
