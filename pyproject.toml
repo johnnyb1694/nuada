@@ -17,6 +17,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "src/"
+]
+addopts = [
+    "--import-mode=importlib",
+]
+
 [project.urls]
 Homepage = "https://github.com/johnnyb1694/nuada"
 Issues = "https://github.com/johnnyb1694/nuada/issues"

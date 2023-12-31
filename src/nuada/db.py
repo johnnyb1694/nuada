@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import create_engine, URL, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, Session
-from models import Base, Control, Term, Source
+from .models import Base, Control, Term, Source
 
 log = logging.getLogger()
 log.setLevel('INFO')
