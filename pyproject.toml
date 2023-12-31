@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nuada"
+version = "0.0.0.9000"
+authors = [
+  { name="Johnny Breen", email="johnnyb1694@gmail.com" },
+]
+description = "A small package of functions and methods for processing New York Times API data inside an AWS pipeline"
+readme = "README.md"
+requires-python = ">=3.10.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/johnnyb1694/nuada"
+Issues = "https://github.com/johnnyb1694/nuada/issues"
