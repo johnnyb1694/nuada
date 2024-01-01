@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import create_engine, URL, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, Session
-from .models import Base, Control, Term, Source
+from nuada.models import Base, Control, Term, Source
 
 log = logging.getLogger()
 log.setLevel('INFO')
@@ -47,20 +47,20 @@ def init_db(db_config: DBC = DBC()) -> Session:
     Session = sessionmaker(engine)
     return Session
 
-def _ingest_term(db_session, term_data: dict, source_id: int, control_id: int):
+def _ingest_term(db_session, terms_record: dict, source_id: int, control_id: int):
     """
-    Ingest a single term record (`term_data`) with *at least* keys: `term`, `year`, `month` and `frequency`
+    Ingest a single term record (`terms_record`) with *at least* keys: `term`, `year`, `month` and `frequency`
     """
     try:
-        stmt = select(Term).where(Term.term == term_data['term'] and Term.year == term_data['year'] and Term.month == term_data['month'])
+        stmt = select(Term).where(Term.term == terms_record['term'], Term.year == terms_record['year'], Term.month == terms_record['month'])
         res = db_session.execute(stmt).first()
         if not res:
-            term = Term(term=term_data['term'],
-                        year=term_data['year'],
-                        month=term_data['month'],
+            term = Term(term=terms_record['term'],
+                        year=terms_record['year'],
+                        month=terms_record['month'],
                         source_id=source_id,
                         control_id=control_id,
-                        frequency=term_data['frequency'])
+                        frequency=terms_record['frequency'])
             db_session.add(term)
             db_session.flush()
     except SQLAlchemyError as e:
@@ -96,8 +96,8 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
             source_id = res[0].source_id
         # Ingest headline terms into database
         terms = terms_df.to_dict(orient='records')
-        for term_data in terms:
-            _ingest_term(db_session, term_data, source_id, control_id)
+        for terms_record in terms:
+            _ingest_term(db_session, terms_record, source_id, control_id)
         resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
         db_session.execute(resolution)
     except SQLAlchemyError as e:
@@ -110,8 +110,9 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
         db_session.commit()
 
 if __name__ == '__main__':
-    pass
-    terms_df = pd.DataFrame(
+    db_config = DBC()
+    Session = init_db(db_config)
+    sample_terms_df = pd.DataFrame(
         {
             'term': ['trump', 'biden'],
             'year': [2023, 2023],
@@ -119,5 +120,16 @@ if __name__ == '__main__':
             'frequency': [100, 200]
         }
     )
-    db_config = DBC(db_name = 'tmp/sqlite.db', echo=True)
-    ingest(terms_df, db_config)
+    sample_terms_df2 = pd.DataFrame(
+        {
+            'term': ['trump', 'biden'],
+            'year': [2023, 2023],
+            'month': [12, 12],
+            'frequency': [200, 400]
+        }
+    )
+    with Session() as session:
+        ingest(session, sample_terms_df)
+        ingest(session, sample_terms_df2)
+        res = session.query(Term).filter_by(term='trump').all()
+        print(res)
