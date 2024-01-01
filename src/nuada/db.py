@@ -67,7 +67,7 @@ def _ingest_term(db_session, terms_record: dict, source_id: int, control_id: int
         log.error(e)
         db_session.rollback()
 
-def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch', source_alias: str = 'New York Times'):
+def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch', source_alias: str = 'New York Times') -> bool:
     """
     Ingests a `pd.DataFrame` object with at least columns: `term`, `year`, `month` and `frequency`.
 
@@ -78,6 +78,7 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
     :param commentary: Brief note on the ingestion performed; defaults to `'Batch'`
     :param source_alias: Describes the source of ingestion; at present, this is simply set to the `'New York Times'` by default as it is the only outlet we process
     """
+    status = False
     try:
         # Set up a 'control' record for this batch run
         control = Control(commentary=commentary)
@@ -100,6 +101,7 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
             _ingest_term(db_session, terms_record, source_id, control_id)
         resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
         db_session.execute(resolution)
+        status = True
     except SQLAlchemyError as e:
         log.error(e)
         db_session.rollback()
@@ -108,28 +110,7 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
     finally:
         db_session.flush()
         db_session.commit()
+        return status
 
 if __name__ == '__main__':
-    db_config = DBC()
-    Session = init_db(db_config)
-    sample_terms_df = pd.DataFrame(
-        {
-            'term': ['trump', 'biden'],
-            'year': [2023, 2023],
-            'month': [11, 11],
-            'frequency': [100, 200]
-        }
-    )
-    sample_terms_df2 = pd.DataFrame(
-        {
-            'term': ['trump', 'biden'],
-            'year': [2023, 2023],
-            'month': [12, 12],
-            'frequency': [200, 400]
-        }
-    )
-    with Session() as session:
-        ingest(session, sample_terms_df)
-        ingest(session, sample_terms_df2)
-        res = session.query(Term).filter_by(term='trump').all()
-        print(res)
+    pass
