@@ -58,14 +58,14 @@ def lambda_handler(event, context):
     s3_client = boto3.client('s3')
     status = False
 
-    log.info(f'Retrieving latest dataset (key: {s3_metadata["key"]}) uploaded to: {s3_metadata["bucket"]}')
+    log.info(f'Retrieving latest JSON file (key: {s3_metadata["key"]}) uploaded to: {s3_metadata["bucket"]}')
     try:
         response = s3_client.get_object(Bucket=s3_metadata['bucket'], Key=s3_metadata['key'])
     except ClientError as e:
         log.error(e)
         raise e
     
-    log.info('Restructuring raw JSON into term-frequency matrix')
+    log.info('Restructuring JSON file into term-frequency dataframe')
     terms_df = preprocess(response)
     
     log.info('Configuring database configuration parameters')

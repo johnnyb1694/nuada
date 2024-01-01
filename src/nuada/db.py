@@ -39,6 +39,9 @@ def init_db(db_config: DBC = DBC()) -> Session:
         'database': f'{db_config.db_name}'
     }
 
+    if db_config.db_port:
+        engine_config['port'] = db_config.db_port
+
     # Initialise connection pool ('engine')
     engine = create_engine(url=URL.create(**engine_config), echo=db_config.echo)
     Base.metadata.create_all(engine)
