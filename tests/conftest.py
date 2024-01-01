@@ -2,6 +2,9 @@
 import pytest
 import pandas as pd
 
+from nuada.db import init_db, DBC
+from nuada.models import Control, Term, Source
+
 @pytest.fixture
 def sample_nyt_response():
     """
@@ -24,3 +27,23 @@ def sample_terms_df():
         }
     )
     return sample_terms_df
+
+@pytest.fixture
+def db_session():
+    Session = init_db() 
+    session = Session()
+    yield session
+    session.rollback()
+    session.close()
+
+@pytest.fixture
+def valid_control():
+    valid_control = Control(commentary='Test Control')
+    return valid_control
+
+@pytest.fixture
+def valid_source():
+    valid_source = Source(source_alias='Test Source')
+    return valid_source
+
+
