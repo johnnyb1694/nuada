@@ -4,3 +4,4 @@ A project dedicated to extracting data from freely available news outlet APIs (e
 
 from .transformer import preprocess
 from .db import DBC, init_db, ingest
+from .resources import request_nyt_archive_search

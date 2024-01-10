@@ -1,0 +1,8 @@
+./_archive/
+./venv/
+./pytest_cache/
+__pycache__
+.git
+.vscode
+.idea
+./tmp/

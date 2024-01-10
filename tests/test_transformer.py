@@ -1,16 +1,7 @@
 import pandas as pd
 
 from pandas.testing import assert_frame_equal
-from nuada.transformer import _deserialise, preprocess
-
-def test_deserialise(sample_nyt_response):
-    """
-    Testing that deserialisation of AWS response is performed as expected
-    """
-    actual = _deserialise(sample_nyt_response)
-    assert isinstance(actual, dict)
-    assert 'response' in actual
-    assert 'docs' in actual['response']
+from nuada.transformer import preprocess
 
 def test_preprocess(sample_nyt_response):
     """
