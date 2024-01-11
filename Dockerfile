@@ -18,15 +18,14 @@ RUN adduser \
     --shell '/sbin/nologin' \
     --no-create-home \
     --uid "${UID}" \
-    nuada_pipeline
+    nuada_pipeline 
 
-# Bind-mount the requirements file from path `source` into the container at path `target` (avoids having to copy `requirements.txt` into the container)
-RUN --mount=type=bind,source=./requirements.txt,target=./requirements.txt
-
-# Create package cache for Python dependencies in container at path `target`
+# (i) Bind-mount the requirements file from path `source` into the container at path `target` (avoids having to copy `requirements.txt` into the container)
+# (ii) Create package cache for Python dependencies in container at path `target`
 # NB: if this layer needs to be rebuilt, it will use the `pip` cache inside `/root/.cache/pip`
 RUN --mount=type=cache,target=/root/.cache/pip \
-        python -m pip install -r requirements.txt
+    --mount=type=bind,source=requirements.txt,target=requirements.txt \
+    python -m pip install -r requirements.txt
 
 # Set the user profile for any commands which follow
 USER nuada_pipeline
@@ -35,3 +34,4 @@ USER nuada_pipeline
 COPY . .
 
 ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["/bin/bash"]

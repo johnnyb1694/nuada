@@ -3,7 +3,9 @@ services:
   pipeline:
     build: 
       context: .
-    networks: backend
+    tty: true
+    networks: 
+      - backend
     secrets:
       - db-password
       - source-key-nyt
@@ -19,13 +21,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    develop:
-      watch:
-        - action: rebuild
-          path: .
+
   db:
     image: postgres
-    networks: backend
+    networks: 
+      - backend
     restart: always
     user: postgres
     secrets:
@@ -45,7 +45,6 @@ services:
 
 networks:
   backend:
-  frontend:
 
 volumes:
   db-data:

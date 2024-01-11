@@ -3,6 +3,7 @@ import os
 import click
 import datetime
 
+from sqlalchemy import Select
 from dotenv import load_dotenv
 from src.nuada import DBC, init_db, ingest, preprocess, request_nyt_archive_search
 
@@ -27,8 +28,8 @@ def parse_credentials() -> dict:
     """
     credentials = {'DB_PWD': '', 'SOURCE_KEY_NYT': ''}
 
-    if 'POSTGRES_PASSWORD_FILE' in os.environ:
-        with open(os.environ['POSTGRES_PASSWORD_FILE'], 'r') as f:
+    if 'DB_PWD_FILE' in os.environ:
+        with open(os.environ['DB_PWD_FILE'], 'r') as f:
             credentials['DB_PWD'] = f.read().strip()
 
     if 'SOURCE_KEY_NYT_FILE' in os.environ:
@@ -67,7 +68,8 @@ def exec_pipeline(year: int, month: int) -> bool:
     logging.info('Uploading term-frequency dataframe into database service')
     Session = init_db(db_config)
     with Session() as db_session:
-       ingest(db_session, term_frequency_df)
+       control = ingest(db_session, term_frequency_df)
+       logging.info(f'Ingestion processed with status: {control}')
 
     return True
 
