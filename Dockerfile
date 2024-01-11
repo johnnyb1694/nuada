@@ -2,6 +2,7 @@
 ARG PYTHON_VERSION=3.10.12
 FROM python:${PYTHON_VERSION}-slim
 
+# Stop Python from writing extraneous data to disk
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
@@ -33,4 +34,4 @@ USER nuada_pipeline
 # Copy the remainder of all required source code for the data pipeline
 COPY . .
 
-ENTRYPOINT [ "python", "-m"]
+ENTRYPOINT ["/bin/sh", "-c"]

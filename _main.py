@@ -21,20 +21,43 @@ TODAY = datetime.date.today()
 FIRST = TODAY.replace(day=1)
 LATEST_PERIOD = FIRST - datetime.timedelta(days=1)
 
+def parse_credentials() -> dict:
+    """
+    Helper function to extract relevant credentials from environment variables
+    """
+    credentials = {'DB_PWD': '', 'SOURCE_KEY_NYT': ''}
+
+    if 'POSTGRES_PASSWORD_FILE' in os.environ:
+        with open(os.environ['POSTGRES_PASSWORD_FILE'], 'r') as f:
+            credentials['DB_PWD'] = f.read().strip()
+
+    if 'SOURCE_KEY_NYT_FILE' in os.environ:
+        with open(os.environ['SOURCE_KEY_NYT_FILE'], 'r') as f:
+            credentials['SOURCE_KEY_NYT'] = f.read().strip()
+
+    return credentials
+
 @click.command()
 @click.option('--year', default = LATEST_PERIOD.year)
 @click.option('--month', default = LATEST_PERIOD.month)
-def exec_pipeline(year: int, month: int):
+def exec_pipeline(year: int, month: int) -> bool:
+    """
+    Execute the 'main' data pipeline; funnels headline term frequencies into a remote database instance specified with environment variables
 
+    :param year: year of interest
+    :param month: month of interest
+    """
     logging.info('Initialising environment variables')
-    nyt_key = os.environ.get('SOURCE_KEY_NYT')
+    secrets = parse_credentials()
+    nyt_key = secrets['SOURCE_KEY_NYT']
     db_config = DBC(db_dialect=os.environ.get('DB_DIALECT', 'sqlite'),
                     db_api=os.environ.get('DB_API', 'pysqlite'),
                     db_user=os.environ.get('DB_USER', ''),
-                    db_pwd=os.environ.get('DB_PWD', ''),
+                    db_pwd=secrets['DB_PWD'],
                     db_host=os.environ.get('DB_HOST', ''),
                     db_port=os.environ.get('DB_PORT', ''),
                     db_name=os.environ.get('DB_NAME', ':memory:'))
+    
     logging.info('Requesting data from New York Times "Archive Search" API')
     response_json = request_nyt_archive_search(year=str(year), month=str(month), key=nyt_key)
 

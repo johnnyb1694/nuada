@@ -162,3 +162,6 @@ cython_debug/
 # temporary files for development purposes
 /tmp/*
 /staging/*
+
+# secrets
+/secrets/*
