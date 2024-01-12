@@ -42,14 +42,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  
+  db_admin:
+    image: dpage/pgadmin4
+    networks:
+      - backend
+    restart: always
+    secrets:
+      - db-admin-password
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=johnnyb1694@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD_FILE=/run/secrets/db-admin-password
+    ports:
+      - "8888:80"
+    volumes:
+      - db-admin-data:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
 
 networks:
   backend:
 
 volumes:
   db-data:
+  db-admin-data:
 
 secrets:
+  db-admin-password:
+    file: secrets/DB_ADMIN_PWD.txt
   db-password:
     file: secrets/DB_PWD.txt
   source-key-nyt:
