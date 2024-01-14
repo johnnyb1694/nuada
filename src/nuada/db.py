@@ -67,7 +67,7 @@ def _ingest_term(db_session, terms_record: dict, source_id: int, control_id: int
         logging.error(e)
         db_session.rollback()
 
-def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch', source_alias: str = 'New York Times') -> Control:
+def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch run', source_alias: str = 'New York Times') -> Control:
     """
     Ingests a `pd.DataFrame` object with at least columns: `term`, `year`, `month` and `frequency`.
 
