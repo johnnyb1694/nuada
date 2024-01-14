@@ -14,5 +14,6 @@ jobs:
           host: ${{secrets.DEPLOYMENT_HOST}}
           username: ${{secrets.DEPLOYMENT_USER}}
           key: ${{secrets.DEPLOYMENT_KEY}}
+          passphrase: ${{secrets.DEPLOYMENT_PASSPHRASE}}
           script: |
             echo 'Connection established successfully'
