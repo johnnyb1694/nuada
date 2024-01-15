@@ -4,6 +4,7 @@ services:
     build: 
       context: .
       dockerfile: ./docker/pipeline/Dockerfile
+    container_name: nuada-pipeline
     networks: 
       - backend
     secrets:
@@ -24,6 +25,7 @@ services:
 
   db:
     image: postgres
+    container_name: nuada-db
     networks: 
       - backend
     restart: always
@@ -45,6 +47,7 @@ services:
   
   db_admin:
     image: dpage/pgadmin4
+    container_name: nuada-db-admin
     networks:
       - backend
     restart: always
