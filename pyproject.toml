@@ -8,7 +8,7 @@ version = "0.0.0.9000"
 authors = [
   { name="Johnny Breen", email="johnnyb1694@gmail.com" },
 ]
-description = "A small package of functions and methods for processing New York Times API data inside an AWS pipeline"
+description = "A small package of functions and methods for processing news data APIs, aggregating the data into a centralised database and exposing this data to third-party users"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [

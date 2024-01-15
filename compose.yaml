@@ -3,7 +3,7 @@ services:
   pipeline:
     build: 
       context: .
-    tty: true
+      dockerfile: ./docker/pipeline/Dockerfile
     networks: 
       - backend
     secrets:
@@ -54,7 +54,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=johnnyb1694@gmail.com
       - PGADMIN_DEFAULT_PASSWORD_FILE=/run/secrets/db-admin-password
     ports:
-      - "8888:80"
+      - 8888:80
     volumes:
       - db-admin-data:/var/lib/pgadmin
     depends_on:

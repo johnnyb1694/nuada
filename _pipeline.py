@@ -3,9 +3,8 @@ import os
 import click
 import datetime
 
-from sqlalchemy import Select
 from dotenv import load_dotenv
-from src.nuada import DBC, init_db, ingest, preprocess, request_nyt_archive_search
+from src.nuada.pipeline import DBC, init_db, ingest, preprocess, request_nyt_archive_search
 
 # Load environment variables (if they exist)
 load_dotenv()

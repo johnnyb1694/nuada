@@ -1,7 +1,7 @@
 import pandas as pd
 
 from pandas.testing import assert_frame_equal
-from nuada.transformer import preprocess
+from nuada.pipeline.transformer import preprocess
 
 def test_preprocess(sample_nyt_response):
     """

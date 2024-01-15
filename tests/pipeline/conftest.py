@@ -3,15 +3,15 @@ import pytest
 import pandas as pd
 import json
 
-from nuada.db import init_db
-from nuada.models import Control, Source
+from nuada.pipeline.db import init_db
+from nuada.pipeline.models import Control, Source
 
 @pytest.fixture
 def sample_nyt_response():
     """
     Consists of 'one' sample entry of a typical NYT Archive Search response (please see underlying file for details)
     """
-    with open('tests/fixtures/sample_nyt.json', 'r') as fixture_json_response:
+    with open('tests/pipeline/fixtures/sample_nyt.json', 'r') as fixture_json_response:
         yield json.load(fixture_json_response)
 
 @pytest.fixture

@@ -8,6 +8,7 @@
 ./tmp/
 ./secrets/
 ./tests/
+./docker/
 .env
 Dockerfile
 compose.yaml

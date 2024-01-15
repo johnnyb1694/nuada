@@ -1,6 +1,6 @@
 import pytest
 
-from nuada.models import Control, Term, Source
+from nuada.pipeline.models import Control, Term, Source
 from sqlalchemy.exc import IntegrityError
 
 class TestModel:
