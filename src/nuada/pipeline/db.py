@@ -63,8 +63,8 @@ def _ingest_term(db_session, terms_record: dict, source_id: int, control_id: int
                         frequency=terms_record['frequency'])
             db_session.add(term)
             db_session.flush()
-    except SQLAlchemyError as e:
-        logging.error(e)
+    except SQLAlchemyError as err:
+        logging.error(err)
         db_session.rollback()
 
 def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch run', source_alias: str = 'New York Times') -> Control:
@@ -78,7 +78,7 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
     :param commentary: Brief note on the ingestion performed; defaults to `'Batch'`
     :param source_alias: Describes the source of ingestion; at present, this is simply set to the `'New York Times'` by default as it is the only outlet we process
     """
-# Set up a 'control' record for this batch run
+    # Set up a 'control' record for this batch run
     control = Control(commentary=commentary)
     try:
         db_session.add(control)
@@ -100,8 +100,8 @@ def ingest(db_session: Session, terms_df: pd.DataFrame, commentary: str = 'Batch
             _ingest_term(db_session, terms_record, source_id, control_id)
         resolution = update(Control).where(Control.control_id == control_id).values(status='Complete')
         db_session.execute(resolution)
-    except SQLAlchemyError as e:
-        logging.error(e)
+    except SQLAlchemyError as err:
+        logging.error(err)
         db_session.rollback()
         resolution = update(Control).where(Control.control_id == control_id).values(status='Fatal')
         db_session.execute(resolution)
