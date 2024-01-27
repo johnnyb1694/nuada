@@ -1,5 +1,5 @@
 from nuada.pipeline.db import ingest
-from nuada.pipeline.models import Control, Source, Term
+from nuada.models import Control, Source, Term
 
 def test_ingest(db_session, valid_terms_df):
     """

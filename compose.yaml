@@ -4,6 +4,7 @@ services:
     build: 
       context: .
       dockerfile: ./docker/pipeline/Dockerfile
+    tty: true
     container_name: nuada-pipeline
     networks: 
       - backend
@@ -38,7 +39,7 @@ services:
       - POSTGRES_DB=nuada
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
     expose:
-      - 5432
+      - 5432:5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s

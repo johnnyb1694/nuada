@@ -34,4 +34,6 @@ USER pipeline
 COPY . .
 
 # Describe the default execution 'pattern' for this service (i.e. pipeline execution)
-ENTRYPOINT [ "python", "_pipeline.py" ]
+ENTRYPOINT [ "/bin/sh", "-c" ]
+
+CMD [ "/bin/bash" ]

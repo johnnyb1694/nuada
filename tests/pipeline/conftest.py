@@ -4,7 +4,7 @@ import pandas as pd
 import json
 
 from nuada.pipeline.db import init_db
-from nuada.pipeline.models import Control, Source
+from nuada.models import Control, Source
 
 @pytest.fixture
 def sample_nyt_response():

@@ -25,7 +25,7 @@ def parse_credentials() -> dict:
     """
     Helper function to extract relevant credentials from environment variables
     """
-    credentials = {'DB_PWD': '', 'SOURCE_KEY_NYT': ''}
+    credentials = {'DB_PWD': os.environ.get('DB_PWD'), 'SOURCE_KEY_NYT': os.environ.get('SOURCE_KEY_NYT')}
 
     if 'DB_PWD_FILE' in os.environ:
         with open(os.environ['DB_PWD_FILE'], 'r') as f:
