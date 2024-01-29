@@ -165,3 +165,7 @@ cython_debug/
 
 # secrets
 /secrets/*
+
+# local databases
+*.db
+*.sqlite

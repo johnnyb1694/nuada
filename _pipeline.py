@@ -1,10 +1,10 @@
-import logging
-import os
 import click
+import os
+import logging
 import datetime
 
 from dotenv import load_dotenv
-from src.nuada.pipeline import DBC, init_db, ingest, preprocess, request_nyt_archive_search
+from src.nuada import request_guardian_headlines, request_nyt_headlines, transform, BatchConfig, DatabaseConfig, DatabaseManager
 
 # Load environment variables (if they exist)
 load_dotenv()
@@ -16,16 +16,17 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-# Extract current timestamp (for pipelining purposes below!)
 TODAY = datetime.date.today()
 FIRST = TODAY.replace(day=1)
 LATEST_PERIOD = FIRST - datetime.timedelta(days=1)
 
 def parse_credentials() -> dict:
-    """
+    '''
     Helper function to extract relevant credentials from environment variables
-    """
-    credentials = {'DB_PWD': os.environ.get('DB_PWD'), 'SOURCE_KEY_NYT': os.environ.get('SOURCE_KEY_NYT')}
+    '''
+    credentials = {'DB_PWD': os.environ.get('DB_PWD'), 
+                   'SOURCE_KEY_NYT': os.environ.get('SOURCE_KEY_NYT'),
+                   'SOURCE_KEY_GUARDIAN': os.environ.get('SOURCE_KEY_GUARDIAN')}
 
     if 'DB_PWD_FILE' in os.environ:
         with open(os.environ['DB_PWD_FILE'], 'r') as f:
@@ -35,41 +36,51 @@ def parse_credentials() -> dict:
         with open(os.environ['SOURCE_KEY_NYT_FILE'], 'r') as f:
             credentials['SOURCE_KEY_NYT'] = f.read().strip()
 
+    if 'SOURCE_KEY_GUARDIAN_FILE' in os.environ:
+        with open(os.environ['SOURCE_KEY_GUARDIAN_FILE'], 'r') as f:
+            credentials['SOURCE_KEY_GUARDIAN'] = f.read().strip()
+
     return credentials
 
 @click.command()
 @click.option('--year', default = LATEST_PERIOD.year)
 @click.option('--month', default = LATEST_PERIOD.month)
 def exec_pipeline(year: int, month: int) -> bool:
-    """
-    Execute the 'main' data pipeline; funnels headline term frequencies into a remote database instance specified with environment variables
+    '''
+    Execute primary batch headline(s) ETL for this project.
 
     :param year: year of interest
     :param month: month of interest
-    """
-    logging.info('Initialising environment variables')
+    '''
+    logging.info('Retrieving credentials (passwords & API keys)')
     secrets = parse_credentials()
-    nyt_key = secrets['SOURCE_KEY_NYT']
-    db_config = DBC(db_dialect=os.environ.get('DB_DIALECT', 'sqlite'),
-                    db_api=os.environ.get('DB_API', 'pysqlite'),
-                    db_user=os.environ.get('DB_USER', ''),
-                    db_pwd=secrets['DB_PWD'],
-                    db_host=os.environ.get('DB_HOST', ''),
-                    db_port=os.environ.get('DB_PORT', ''),
-                    db_name=os.environ.get('DB_NAME', ':memory:'))
     
-    logging.info('Requesting data from New York Times "Archive Search" API')
-    response_json = request_nyt_archive_search(year=str(year), month=str(month), key=nyt_key)
-
-    logging.info('Constructing term-frequency dataframe for specified period of interest')
-    term_frequency_df = preprocess(response_json)
+    logging.info('Configuring execution context')
+    batch_config = BatchConfig(year, month)
+    db_config = DatabaseConfig(db_dialect=os.environ.get('DB_DIALECT', 'sqlite'),
+                               db_api=os.environ.get('DB_API', 'pysqlite'),
+                               db_user=os.environ.get('DB_USER', ''),
+                               db_pwd=secrets['DB_PWD'],
+                               db_host=os.environ.get('DB_HOST', ''),
+                               db_port=os.environ.get('DB_PORT', ''),
+                               db_name=os.environ.get('DB_NAME', ':memory:'))
     
-    logging.info('Uploading term-frequency dataframe into database service')
-    Session = init_db(db_config)
-    with Session() as db_session:
-       control = ingest(db_session, term_frequency_df)
-       logging.info(f'Ingestion processed with status: {control}')
-
+    logging.info(f'Connecting to remote database session (config: {db_config})')
+    db = DatabaseManager(db_config)
+    
+    logging.info(f'Requesting headline metadata from the "New York Times" and the "Guardian" (config: {batch_config})')
+    headlines_nyt = request_nyt_headlines(year, month, secrets['SOURCE_KEY_NYT'])
+    headlines_guardian = request_guardian_headlines(year, month, secrets['SOURCE_KEY_GUARDIAN'])
+    
+    logging.info(f'Transforming headlines into term-frequency matrices')
+    terms_nyt = transform(headlines_nyt)
+    terms_guardian = transform(headlines_guardian)
+    batch_data = {'New York Times': terms_nyt,
+                  'Guardian': terms_guardian}
+    
+    logging.info('Ingesting extracts from aforementioned media sources into database instance')
+    db.insert_batch(batch_config, batch_data)
+    
     return True
 
 if __name__ == '__main__':

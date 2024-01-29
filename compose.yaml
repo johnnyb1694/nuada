@@ -11,8 +11,10 @@ services:
     secrets:
       - db-password
       - source-key-nyt
+      - source-key-guardian
     environment:
       - SOURCE_KEY_NYT_FILE=/run/secrets/source-key-nyt
+      - SOURCE_KEY_GUARDIAN_FILE=/run/secrets/source-key-guardian
       - DB_PWD_FILE=/run/secrets/db-password
       - DB_DIALECT=postgresql
       - DB_API=psycopg2
@@ -39,7 +41,7 @@ services:
       - POSTGRES_DB=nuada
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
     expose:
-      - 5432:5432
+      - 5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
@@ -79,3 +81,5 @@ secrets:
     file: secrets/DB_PWD.txt
   source-key-nyt:
     file: secrets/SOURCE_KEY_NYT.txt
+  source-key-guardian:
+    file: secrets/SOURCE_KEY_GUARDIAN.txt

@@ -21,7 +21,7 @@ def _request(url: str, params: dict, delay: int = 0):
     Wrapper function which calls `requests.get()` under the hood
     '''
     if delay > 0:
-        logging.info(f'Sleeping for {delay} seconds prior to making GET request (target endpoint: "{url}")')
+        logging.debug(f'Sleeping for {delay} seconds prior to making GET request (target endpoint: "{url}")')
         time.sleep(delay)
     res = requests.get(url, params)
     res.raise_for_status()
@@ -60,7 +60,7 @@ def _standardise_nyt_headlines(res_deserialised: dict):
                   'headline': article['headline']['main']} for article in articles]
     return headlines
 
-def request_nyt_headlines(year: int, month: int, key: str) -> str:
+def request_nyt_headlines(year: int, month: int, key: str) -> pd.DataFrame:
     '''
     Get all of the headlines from the New York Times for a specific `year` & `month`
 
@@ -80,7 +80,7 @@ def request_nyt_headlines(year: int, month: int, key: str) -> str:
         raise err
     return headlines_df
 
-def request_guardian_headlines(year: int, month: int, key: str, n_pages: int | None = None) -> str:
+def request_guardian_headlines(year: int, month: int, key: str, n_pages: int | None = None) -> pd.DataFrame:
     '''
     Get all of the headlines from the Guardian for a specific `year` & `month`
 
@@ -115,5 +115,4 @@ def request_guardian_headlines(year: int, month: int, key: str, n_pages: int | N
     return headlines_df
 
 if __name__ == '__main__':
-    headlines_guardian = request_guardian_headlines(year=2023, month=12, key='79966749-c95b-458e-84e0-e82a6fe2cf9f', n_pages = 10)
     pass

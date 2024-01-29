@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Create working directory for pipeline application
-WORKDIR /pipeline
+WORKDIR /app
 
 # Initialise a specific runtime service account which has no ability to login or amend permissions within a container context
 ARG UID=10001
