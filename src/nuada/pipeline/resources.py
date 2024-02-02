@@ -105,7 +105,7 @@ def request_guardian_headlines(year: int, month: int, key: str, n_pages: int | N
         headline_list = []
         for n in range(1, n_pages + 1):
             params['page'] = n
-            res = _request(url, params, delay = 0.50)
+            res = _request(url, params, delay = 0.25)
             headlines = _standardise_guardian_headlines(res)
             headline_list.append(headlines)
         headlines = list(itertools.chain.from_iterable(headline_list))
