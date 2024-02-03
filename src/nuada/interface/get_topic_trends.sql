@@ -1,6 +1,6 @@
-DROP FUNCTION get_source_trends(text,integer,integer);
+DROP FUNCTION IF EXISTS get_topic_trends(text,integer,integer);
 
-CREATE OR REPLACE FUNCTION get_source_trends(
+CREATE OR REPLACE FUNCTION get_topic_trends(
 	source_alias TEXT,
 	n_rollback_months INT = 6,
  	min_term_occurrences INT = 25
@@ -61,7 +61,7 @@ BEGIN
 		growth NUMERIC(10, 4)
 	);
 
-	-- 2: Filter terms on provided source alias
+	-- 2: Filter terms on provided source alias (DEBT: should probably add a 'latest' field to this table at some point)
 	SELECT MAX(c.control_id) INTO latest_control_id FROM public.control c;
 	
 	INSERT INTO term_base (
@@ -77,7 +77,7 @@ BEGIN
 	JOIN public.source s ON s.source_id = t.source_id
 	JOIN public.control c ON c.control_id = t.control_id
 	WHERE s.alias = source_alias
-	AND c.control_id BETWEEN (latest_control_id - n_rollback_months) AND latest_control_id;
+	AND c.control_id BETWEEN (latest_control_id - n_rollback_months) AND latest_control_id; -- NB: assumes each batch has been run in order (safe assumption but a bit unstable if I were creating this in production!)
 
 	-- 3: Insert missing term-control combinations for relevant instances (remember that 'control' is a proxy for period under consideration)
 	INSERT INTO term_absent (
@@ -159,7 +159,7 @@ BEGIN
 		tf.term,
 		tf.frequency,
 		tf.prior_frequency,
-		CASE WHEN tf.prior_frequency = 0 OR tf.frequency = 0 THEN 0 ELSE LN(tf.frequency::numeric / tf.prior_frequency::numeric) END AS growth
+		CASE WHEN tf.prior_frequency = 0 OR tf.frequency = 0 THEN 0 ELSE (tf.frequency::numeric - tf.prior_frequency::numeric) END AS growth
 	FROM term_frequencies tf;
 
     RETURN QUERY
