@@ -1,6 +1,7 @@
 import pandas as pd
 import nltk
 
+from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
@@ -15,6 +16,28 @@ def _download_nltk_data(download_dir: str = '/tmp') -> None:
     except IOError as err:
         raise err
 
+def _cleanse_cases(terms_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Standardise terms to lower case 
+    '''
+    terms_df['term'] = terms_df['term'].str.lower()
+    return terms_df
+
+def _cleanse_stop_words(terms_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Eliminate 'stop words'
+    '''
+    stop_words = set(stopwords.words('english')) # NB: set-based usage improves lookup efficiency over list-based usage
+    terms_df = terms_df[~terms_df['term'].isin(stop_words)]
+    return terms_df
+
+def _cleanse_numerics(terms_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Eliminate numeric characters; should only be left with alphabetical characters
+    '''
+    terms_df = terms_df[terms_df['term'].apply(lambda xx: xx.isalpha())]
+    return terms_df
+
 def _tokenize_headlines(headlines_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Ingests dataframe of headlines and expands each 'term' contained within the headline into a separate row.
@@ -23,11 +46,6 @@ def _tokenize_headlines(headlines_df: pd.DataFrame) -> pd.DataFrame:
     '''
     headlines_df['term'] = headlines_df['headline'].apply(word_tokenize)
     terms_df = headlines_df.explode('term')
-    terms_df['term'] = terms_df['term'].str.lower()
-
-    stop_words = set(stopwords.words('english')) # NB: set-based usage improves lookup efficiency over list-based usage
-    terms_df = terms_df[~terms_df['term'].isin(stop_words)]
-    terms_df = terms_df[terms_df['term'].apply(lambda xx: xx.isalpha())]
     return terms_df
 
 def _aggregate_terms(terms_df: pd.DataFrame, grain: list[str] = ['term', 'year', 'month']) -> pd.DataFrame:
@@ -44,7 +62,12 @@ def transform(headlines_df: pd.DataFrame) -> pd.DataFrame:
     Transform a `headlines_df` object (as implemented in `nuada.pipeline.resources`) into a tokenized term-frequency matrix
     '''
     _download_nltk_data()
-    terms_df = headlines_df.pipe(_tokenize_headlines).pipe(_aggregate_terms)
+    terms_df = (headlines_df
+                    .pipe(_tokenize_headlines)
+                    .pipe(_cleanse_cases)
+                    .pipe(_cleanse_stop_words)
+                    .pipe(_cleanse_numerics)
+                    .pipe(_aggregate_terms))
     return terms_df
 
 if __name__ == '__main__':  
